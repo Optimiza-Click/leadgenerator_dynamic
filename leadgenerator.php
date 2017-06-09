@@ -5,7 +5,7 @@ Plugin URI: http://#
 Description: Generador de datos
 Author: Departamento de Desarrollo
 Author URI: http://#
-Version: 0.9 BETA
+Version: 1.0
 Copyright: 2016 - 2017
 */
 
@@ -21,6 +21,7 @@ class LeadGenerator_WP extends Landing_WP{
         //get all values in init
         add_action('wp_head', array($this, 'init'));
         add_action('init', array($this, 'promo_taxonomy'));
+       
 
         //print the shortcodes
         add_shortcode( 'get_meta_ubication', array($this, 'get_meta_ubication'));
@@ -49,7 +50,7 @@ class LeadGenerator_WP extends Landing_WP{
     public $cp_id;
     public $cp;
     public $load_template;
-
+    public $plugin_name = 'leadgenerator_dynamic';
 
 //initizalizate
     public function init() {
@@ -449,7 +450,7 @@ class LeadGenerator_WP extends Landing_WP{
                         <div class="wpb_column vc_column_container vc_col-sm-3" style="margin-bottom:20px;">
                             <div class="vc_column-inner ">
                                 <div class="wpb_wrapper">
-                                    <img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/casa_logo.png">
+                                    <img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/casa_logo.png">
                                 </div>
                             </div>
                         </div>
@@ -562,17 +563,17 @@ class LeadGenerator_WP extends Landing_WP{
                         <div class="BMI_results">
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_height"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/altura.png" class="left"> ALTURA: <span class="resultado_dato" id="height_orig"></span></div>
+                                    <div class="BMI_height"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/altura.png" class="left"> ALTURA: <span class="resultado_dato" id="height_orig"></span></div>
                                  </div>
                             </div>
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_weight"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/peso.png" class="left"> PESO: <span class="resultado_dato" id="weight_orig"></span></div>
+                                    <div class="BMI_weight"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/peso.png" class="left"> PESO: <span class="resultado_dato" id="weight_orig"></span></div>
                                 </div>
                             </div>
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_target_weight"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/objetivo.png" class="left"> OBJETIVO DE PESO: <span class="resultado_dato resultado_dato_target" id="target_weight_orig"></span></div>
+                                    <div class="BMI_target_weight"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/objetivo.png" class="left"> OBJETIVO DE PESO: <span class="resultado_dato resultado_dato_target" id="target_weight_orig"></span></div>
                                 </div>
                             </div>
                         </div>

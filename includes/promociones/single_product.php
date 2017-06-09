@@ -8,7 +8,6 @@ if (!class_exists('Product_WP_Landing'))
         add_filter( 'save_post', array( $this, 'save_shops_promo_leadgenerator' ), 10, 2 );
         add_action( 'admin_print_scripts', array( $this, 'promo_leadgenerator_admin_js_css') );
         add_shortcode( 'get_meta_value_promo', array( $this, 'get_meta_value_promo') );
-        add_shortcode( 'promo_store', array( $this, 'promo_store') );
     }
 
     public function promo_leadgenerator_admin_js_css() {
@@ -33,26 +32,15 @@ if (!class_exists('Product_WP_Landing'))
         }
     }
 
-    public function promo_store() { 
-        $store_id = $_GET['store_id'];
-
-        if(isset($store_id)) {
-        $store_post = get_posts(array(
-            'numberposts'	=> -1,
-            'post_type'		=> 'post',
-            'meta_key'		=> 'store_id',
-            'meta_value'	=> $store_id
-         ));
-
-        $tags = wp_get_post_tags($store_post[0]->ID);
-
-        $url_offer = get_site_url() . '/promo-leadgenerator/' . $tags[0]->name . '?store_id=' . $store_id;
-        
-        echo $url_offer;
+    public function category_cheker_reverse($category) {
+         if ($category[0]->category_parent > 0){
+            return $category[1];
         } else {
-            echo 'prueba';
+            return $category[0];
         }
     }
+
+
 
     public function get_meta_value_promo() {
         global $post;
@@ -74,7 +62,7 @@ if (!class_exists('Product_WP_Landing'))
                         <div class="wpb_column vc_column_container vc_col-sm-3" style="margin-bottom:20px;">
                             <div class="vc_column-inner ">
                                 <div class="wpb_wrapper">
-                                    <img src="<?= plugins_url() ?>/leadgenerator/img/casa_logo.png">
+                                    <img src="<?= plugins_url() ?>/leadgenerator_dynamic/img/casa_logo.png">
                                 </div>
                             </div>
                         </div>
@@ -116,17 +104,18 @@ if (!class_exists('Product_WP_Landing'))
         foreach($posts as $post) {
             $store_ids[] = array(
                 'store_id' => get_post_meta($post->ID, 'store_id', true),
-                'direccion' => get_post_meta($post->ID, 'direc', true)
+                'poblacion' => $this->check_category(get_the_category($post->ID)),
+                'direccion' => get_post_meta($post->ID, 'direc', true),
+                'provincia' => $this->category_cheker_reverse(get_the_category($post->ID)),
             );
         }
-
         ?>
         <div style="display:none" id="prueba"><?= $values['promo_leadgenerator_store_id'][0] ?></div>
         <div id="selections">
         <label>Select Store ID:</label><br />
             <select multiple="multiple" class="select2" id="promo_leadgenerator_store_id" name="promo_leadgenerator_store_id[]">
             <?php foreach($store_ids as $store_id): ?>
-                <option name="promo_leadgenerator_store_id_single" value="<?= $store_id['store_id'] ?>"><?= $store_id['store_id'] . ', ' . $store_id['direccion'] ?></option>
+                <option name="promo_leadgenerator_store_id_single" value="<?= $store_id['store_id'] ?>"><?= $store_id['store_id'] . ', ' . $store_id['direccion'] . ' - ' . $store_id['poblacion']->name . ' - ' . $store_id['provincia']->name  ?></option>
             <?php endforeach; ?>
             </select>
         </div>

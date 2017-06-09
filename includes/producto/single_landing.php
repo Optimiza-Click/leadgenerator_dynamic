@@ -83,7 +83,7 @@ if (!class_exists('Landing_WP'))
 		<!-- modal content -->
 
 		<div id="basic-modal-content" style="display:none">
-         <img width="227" height="35" src="<?= plugins_url() ?>/leadgeneneratordynamic/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
+         <img width="227" height="35" src="<?= plugins_url() ?>/<?= $this->leadgenerator->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
          <div class="provincia_select">
           <h4 class="message_prov">¿Cuál es tu provincia?</h4>
             <?php wp_dropdown_categories( $args_category ); ?>
@@ -108,7 +108,11 @@ if (!class_exists('Landing_WP'))
                 wp_enqueue_script( 'basic', plugins_url( 'js/basic.js', __FILE__ ) );
                 wp_enqueue_style( 'style', plugins_url( 'css/style.css', __FILE__ ) );
 
-                $query=new WP_Query(array('posts_per_page=-1', 'tag' => $_GET['promo']));
+                $query=new WP_Query(array(
+                    'posts_per_page' => -1,
+                    'orderby' => 'title',
+                    'order' => 'ASC',
+                    'tag' => $_GET['promo']));
 
                 foreach($query->posts as $post) {
 
@@ -120,7 +124,7 @@ if (!class_exists('Landing_WP'))
 		?>
 
                 <div id="basic-modal-content" style="display:none">
-                <img width="227" height="35" src="<?= plugins_url() ?>/leadgeneneratordynamic/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
+                <img width="227" height="35" src="<?= plugins_url() ?>/<?= $this->leadgenerator->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
                 <div class="provincia_select">
                 <h4 class="message_prov">¿Cuál es tu provincia?</h4>
                     <select name="cat" id="provincia" class="promo">
