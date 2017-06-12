@@ -7,18 +7,15 @@ if (!class_exists('Landing_WP'))
         public $n_localidades = 10;
         public $n_provincias = 10;
         public $leadgenerator;
+        public $plugin_name = 'leadgenerator_dynamic';
 
         public function __construct() {
             add_action('wp_head', array($this, 'modal'));
             add_action('init', array($this, 'get_parent'));
-            add_action('init', array($this, 'init'));
-        }
-
-        public function init() {
-            $this->leadgenerator = new LeadGenerator_WP();
         }
 
         public function get_parent() {
+            global $leadgenerator;
             if(isset($_GET['category_id'])) {
                     $args = array('child_of' => $_GET['category_id']);
                     if(count(get_categories($args)) < $this->n_provincias) {
@@ -33,38 +30,39 @@ if (!class_exists('Landing_WP'))
                     'category' => $_GET['local_id'],
                     'posts_per_page' => -1
                     );
-                    
-                    $post = $this->leadgenerator->check_tag($args);
+                     
+                    $post = $leadgenerator->check_tag($args);
+
                     $category = get_the_category($post[0]);
-   
-                if(count(get_posts($args)) > $this->n_localidades) {
-                    $category = $this->leadgenerator->category_cheker(get_the_category($post[0]->ID));
+ 
+                    if(count(get_posts($args)) > $this->n_localidades) {
+                        $category = $leadgenerator->check_category(get_the_category($post[0]->ID));
+                      
+                        $args = array(
+                            'url' => get_site_url() . '/' . strtolower($category->cat_name) . '/' .  strtolower($category->name),
+                            'value' => true
+                        );
+         
+                        print_r(json_encode($args));
+                    } else {
+
+                        $category = $leadgenerator->check_category(get_the_category($post[0]->ID));
+
+                        $args = array(
+                            'url' =>  get_category_link($category->category_parent) . $leadgenerator->limpiar(str_replace(' ','-',strtolower($category->name))),
+                            'value' => false
+                        );
+
+                        print_r(json_encode($args));
                     
-                    $args = array(
-                        'url' => get_category_link($category->category_parent) . $this->leadgenerator->limpiar(str_replace(' ','-',strtolower($category->name))),
-                        'value' => true
-                    );
-
-                    print_r(json_encode($args));
-                } else {
-
-                    $category = $this->leadgenerator->category_cheker(get_the_category($post[0]->ID));
-
-                    $args = array(
-                        'url' =>  get_category_link($category->category_parent) .  $this->leadgenerator->limpiar(str_replace(' ','-',strtolower($category->name))),
-                        'value' => false
-                    );
-
-                    print_r(json_encode($args));
-                   
-                }
+                    }
                 die();
             }
         }
 
 
         public function modal() {
-            global $post;
+            global $post, $leadgenerator;
             if($post->post_name == 'nutricionista-para-adelgazar') {
             wp_enqueue_script( 'simple_modal', plugins_url( 'js/jquery.simplemodal.1.4.4.min.js', __FILE__ ) );
             wp_enqueue_script( 'basic', plugins_url( 'js/basic.js', __FILE__ ) );
@@ -83,7 +81,7 @@ if (!class_exists('Landing_WP'))
 		<!-- modal content -->
 
 		<div id="basic-modal-content" style="display:none">
-         <img width="227" height="35" src="<?= plugins_url() ?>/<?= $this->leadgenerator->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
+         <img width="227" height="35" src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
          <div class="provincia_select">
           <h4 class="message_prov">¿Cuál es tu provincia?</h4>
             <?php wp_dropdown_categories( $args_category ); ?>
@@ -113,10 +111,10 @@ if (!class_exists('Landing_WP'))
                     'orderby' => 'title',
                     'order' => 'ASC',
                     'tag' => $_GET['promo']));
-
+                    
                 foreach($query->posts as $post) {
 
-                    $category_by_post[] = $this->leadgenerator->category_cheker_reverse(get_the_category($post));
+                    $category_by_post[] = $leadgenerator->category_cheker_reverse(get_the_category($post));
 
 		        }  
 
@@ -124,7 +122,7 @@ if (!class_exists('Landing_WP'))
 		?>
 
                 <div id="basic-modal-content" style="display:none">
-                <img width="227" height="35" src="<?= plugins_url() ?>/<?= $this->leadgenerator->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
+                <img width="227" height="35" src="<?= plugins_url() ?>/<?= $leadgenerator->plugin_name ?>/includes/producto/img/separador.png" class="vc_single_image-img attachment-full" style="margin: 0 auto;display: block;padding-bottom: 10px;"alt="">
                 <div class="provincia_select">
                 <h4 class="message_prov">¿Cuál es tu provincia?</h4>
                     <select name="cat" id="provincia" class="promo">

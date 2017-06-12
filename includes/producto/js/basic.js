@@ -37,7 +37,6 @@ jQuery(function($) {
                 if (data.indexOf(str2) != -1) {
                     jQuery(location).attr('href', data);
                 } else {
-                    console.log(data);
                     jQuery("#basic-modal-content").fadeOut("slow", function() {
                         jQuery('.message_prov').text('¿Cuál es tu localidad?');
                         var $site = $("#localidad");
@@ -61,7 +60,7 @@ jQuery(function($) {
         var localidad = $("#localidad").val();
         jQuery.ajax({
             type: "GET",
-            url: "/nutricionista-para-adelgazar-promo/",
+            url: "/nutricionista-para-adelgazar/",
             data: "?local_id=" + localidad,
             success: function(data) {
                 var str2 = "http";
@@ -93,7 +92,6 @@ jQuery(function($) {
                 if (data.indexOf(str2) != -1) {
                     jQuery(location).attr('href', data);
                 } else {
-                    console.log(data);
                     jQuery("#basic-modal-content").fadeOut("slow", function() {
                         jQuery('.message_prov').text('¿Cuál es tu localidad?');
                         var $site = $("#localidad");

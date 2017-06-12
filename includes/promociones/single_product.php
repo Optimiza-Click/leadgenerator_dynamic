@@ -120,6 +120,7 @@ if (!class_exists('Product_WP_Landing'))
             </select>
         </div>
         <p>
+        <div style="display:none" id="pages_selected"><?= $values['pages_selected'][0] ?></div>
             <label>Select Promotional Page:</label><br />
             <select multiple="multiple" class="select2" id="pages_selected" name="pages_selected[]">
             <?php $pages = get_pages();
