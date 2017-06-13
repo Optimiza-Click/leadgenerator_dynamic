@@ -63,6 +63,16 @@ jQuery(document).ready(function() {
 
 jQuery(document).ready(function() {
     jQuery("#contac_form_center select").change(function() {
+        jQuery.urlParam = function(name){
+            var results = new RegExp('[\?&]' + name + '=([^]*)').exec(window.location.href);
+            if (results==null){
+            return null;
+            }
+            else{
+            return results[1] || 0;
+           }
+        }
+        jQuery('form').append('<input type="hidden" name="promo" value="' + jQuery.urlParam('promo') + '" />');
         var myString = jQuery(this).find("option:selected").text();
         var direccion = myString.substring(myString.indexOf(',') + 1)
         jQuery.ajax({

@@ -5,7 +5,7 @@ Plugin URI: http://#
 Description: Generador de datos
 Author: Departamento de Desarrollo
 Author URI: http://#
-Version: 0.9 BETA
+Version: 1.0
 Copyright: 2016 - 2017
 */
 
@@ -20,8 +20,9 @@ class LeadGenerator_WP extends Landing_WP{
     public function __construct() {
         //get all values in init
         add_action('wp_head', array($this, 'init'));
+        add_action('wp_head', array($this, 'get_type_of_post'));
         add_action('init', array($this, 'promo_taxonomy'));
-
+       
         //print the shortcodes
         add_shortcode( 'get_meta_ubication', array($this, 'get_meta_ubication'));
         add_shortcode( 'get_ubication_loc', array($this, 'get_ubication_loc'));
@@ -34,7 +35,7 @@ class LeadGenerator_WP extends Landing_WP{
         //rewrite data in form with store id
         add_action( 'init', array($this, 'rewrite_form'));
 
-       add_filter( 'wpcf7_form_tag', array($this,'city_locale'), 10, 2);  
+        add_filter( 'wpcf7_form_tag', array($this,'cf7_rewrite_list_of_mails'), 10, 2);  
     }
 
     public $slug;
@@ -49,7 +50,8 @@ class LeadGenerator_WP extends Landing_WP{
     public $cp_id;
     public $cp;
     public $load_template;
-
+    public $plugin_name = 'leadgenerator_dynamic';
+    public $plugins;
 
 //initizalizate
     public function init() {
@@ -61,8 +63,8 @@ class LeadGenerator_WP extends Landing_WP{
         $this->slug = get_the_category();
         $this->category = get_category_by_slug($this->slug[0]->slug); 
 
-        $this->store_id = $_GET['store_id'];
-        $this->cp_id = $_GET['cp'];
+        $this->store_id = isset($_GET['store_id']);
+        $this->cp_id = isset($_GET['cp']);
 
         $this->store_posts = get_posts(array(
             'numberposts'	=> -1,
@@ -75,10 +77,16 @@ class LeadGenerator_WP extends Landing_WP{
             'numberposts'	=> -1,
             'post_type'		=> 'post',
             'meta_key'		=> 'cp',
-            'meta_value'	=> $this->cp_id
+            'meta_value'	=> $_GET['cp']
         ));
 
-        $copy = $this->get_type_of_post();
+        $this->plugins = $this->get_posts_by_type();
+
+        wp_enqueue_script( 'calculator', plugins_url( 'js/calculator.js', __FILE__ ) );
+    }
+
+    public function get_posts_by_type() {
+            $copy = $this->get_type_of_post();
 
             switch($copy):
                 case 'single':
@@ -86,6 +94,7 @@ class LeadGenerator_WP extends Landing_WP{
                     $defaults = array(
                         'numberposts' => -1,
                         'category' => $category->term_id,
+                        'orderby' => 'title',                                             
                         'order' => 'ASC'
                     );
 
@@ -96,6 +105,7 @@ class LeadGenerator_WP extends Landing_WP{
                     $defaults = array(
                         'numberposts' => -1,
                         'category' => $this->category_simple->term_id,
+                        'orderby' => 'title',
                         'order' => 'ASC'
                     );
 
@@ -117,24 +127,30 @@ class LeadGenerator_WP extends Landing_WP{
                     $this->posts = $this->code;
                 break;
 
-                case 'other':
+                case 'frontpage':
                      $defaults = array(
                         'numberposts' => -1,
-                        'category' => 0, 'orderby' => 'date',
+                        'category' => 0, 
+                        'orderby' => 'title',
                         'order' => 'ASC'
                     );
                     $this->posts = $this->check_tag($defaults);
                 break;
             endswitch;
 
+        return $this->posts;
+    }
+
+    public function columns() {
         if(count($this->posts) > 4) {
             $this->column = '3';
         } else {
             $this->column = '6';
         }
-        wp_enqueue_script( 'calculator', plugins_url( 'js/calculator.js', __FILE__ ) );
+        return $this->column;
     }
 
+    
     public function get_type_of_post() {
         global $post;
 
@@ -142,8 +158,8 @@ class LeadGenerator_WP extends Landing_WP{
             'single' => is_single(),
             'category' => is_category(),
             'store_id' => isset($_GET['store_id']),
-            'cp_id' => isset($_GET['cp_id']),
-            'other');
+            'cp_id' => isset($_GET['cp']),
+            'frontpage' => is_front_page());
 
         foreach($args as $arr => $key):
             if($key == TRUE) {
@@ -167,28 +183,43 @@ class LeadGenerator_WP extends Landing_WP{
                 'nutricionista' => get_post_meta($post[0]->ID, 'nutricionista', true)
             );
 
-            echo json_encode($args);
+            return json_encode($args);
 
             die();
         }
     }
         
-    public function limpiar($s){
-	$s = ereg_replace("[áàâãª]","a",$s);
-	$s = ereg_replace("[ÁÀÂÃ]","A",$s);
-	$s = ereg_replace("[éèê]","e",$s);
-	$s = ereg_replace("[ÉÈÊ]","E",$s);
-	$s = ereg_replace("[íìî]","i",$s);
-	$s = ereg_replace("[ÍÌÎ]","I",$s);
-	$s = ereg_replace("[óòôõº]","o",$s);
-	$s = ereg_replace("[ÓÒÔÕ]","O",$s);
-	$s = ereg_replace("[úùû]","u",$s);
-	$s = ereg_replace("[ÚÙÛ]","U",$s);
-	$s = str_replace(" ","-",$s);
-	$s = str_replace("ñ","n",$s);
-	$s = str_replace("Ñ","N",$s);
-
-	return $s;
+    public function limpiar($String){
+        $String = str_replace(array('á','à','â','ã','ª','ä'),"a",$String);
+        $String = str_replace(array('Á','À','Â','Ã','Ä'),"A",$String);
+        $String = str_replace(array('Í','Ì','Î','Ï'),"I",$String);
+        $String = str_replace(array('í','ì','î','ï'),"i",$String);
+        $String = str_replace(array('é','è','ê','ë'),"e",$String);
+        $String = str_replace(array('É','È','Ê','Ë'),"E",$String);
+        $String = str_replace(array('ó','ò','ô','õ','ö','º'),"o",$String);
+        $String = str_replace(array('Ó','Ò','Ô','Õ','Ö'),"O",$String);
+        $String = str_replace(array('ú','ù','û','ü'),"u",$String);
+        $String = str_replace(array('Ú','Ù','Û','Ü'),"U",$String);
+        $String = str_replace(array('[','^','´','`','¨','~',']'),"",$String);
+        $String = str_replace("ç","c",$String);
+        $String = str_replace("Ç","C",$String);
+        $String = str_replace("ñ","n",$String);
+        $String = str_replace("Ñ","N",$String);
+        $String = str_replace("Ý","Y",$String);
+        $String = str_replace("ý","y",$String);
+        
+        $String = str_replace("&aacute;","a",$String);
+        $String = str_replace("&Aacute;","A",$String);
+        $String = str_replace("&eacute;","e",$String);
+        $String = str_replace("&Eacute;","E",$String);
+        $String = str_replace("&iacute;","i",$String);
+        $String = str_replace("&Iacute;","I",$String);
+        $String = str_replace("&oacute;","o",$String);
+        $String = str_replace("&Oacute;","O",$String);
+        $String = str_replace("&uacute;","u",$String);
+        $String = str_replace("&Uacute;","U",$String);
+        
+    return $String;
     }   
 
     public function load_template($s) {
@@ -207,30 +238,30 @@ class LeadGenerator_WP extends Landing_WP{
         }
     }
 
-    function city_locale ( $tag, $unused ) {  
+    public function cf7_rewrite_list_of_mails ( $tag, $unused ) {  
     if ( $tag['name'] != 'plugin-list' )  
-        return $tag;  
-   
+        return $tag; 
+
     $plugins = $this->posts;
- 
-  
+
     if ( ! $plugins )  
         return $tag;  
-  
-    foreach($plugins as $plugin):
-            $direction = get_post_meta($plugin->ID, 'direc',true);  
-            $mail = get_post_meta($plugin->ID, 'email',true);  
-            
-            if($mail != '') {
-                $tag['raw_values'][] = $mail; 
-                $tag['values'][] = $mail;
-            } else {
-                $tag['raw_values'][] = 'patrocinios@naturhouse.com'; 
-                $tag['values'][] = 'patrocinios@naturhouse.com';
-            }
-            $tag['labels'][] = $plugin->post_title . ', ' . substr($direction,0,60);
-    endforeach;
-  
+        
+        foreach($this->posts as $plugin):
+                $direction = get_post_meta($plugin->ID, 'direc',true);  
+                $mail = get_post_meta($plugin->ID, 'email',true);  
+
+                if($mail != '') {
+                    $tag['raw_values'][] = $mail; 
+                    $tag['values'][] = $mail;
+                } else {
+                    $tag['raw_values'][] = 'patrocinios@naturhouse.com'; 
+                    $tag['values'][] = 'patrocinios@naturhouse.com';
+                }
+
+                $tag['labels'][] = $plugin->post_title . ', ' . substr($direction,0,60);
+        endforeach;
+
     return $tag;  
     }   
 
@@ -313,6 +344,7 @@ class LeadGenerator_WP extends Landing_WP{
             return $category[0];
         }
     }
+    
 //get posts by store_id
     public function get_page_store() {
         if(isset($this->store_id)) {
@@ -331,12 +363,10 @@ class LeadGenerator_WP extends Landing_WP{
     public function title() {
                 
         if(is_category()) {
-
         echo '<h1>' . get_bloginfo() . ' <span>' . $this->category_simple->name . '</span></h1>'; 
         } else {
-            $meta_single = get_post_meta($this->store_posts[0]->ID, '',false);
             if(isset($this->store_id) OR isset($this->cp_id)) {    
-                 $category = get_the_category($post[0]->ID);
+                $meta_single = get_post_meta($this->store_posts[0]->ID, '',false);
                  echo '<h1>' . get_bloginfo() . ' <span>' . $meta_single['direc'][0] . '</span></h1>';
 
                 } else {
@@ -348,8 +378,8 @@ class LeadGenerator_WP extends Landing_WP{
 
 
     public function subtitle() {
-        $nutri_name = get_post_meta($this->store_posts[0]->ID, 'nutricionista',true);
         if(isset($this->store_id) OR isset($this->cp_id)){
+            $nutri_name = get_post_meta($this->store_posts[0]->ID, 'nutricionista',true);
             echo '<div class="text_with_image_background claim">En este centro te espera:<br />' . $nutri_name . '</div>';
             echo '<div class="texto_contact">';
             echo '<h4>Te ayudará a</h4>';
@@ -366,15 +396,7 @@ class LeadGenerator_WP extends Landing_WP{
 
 
     public function get_map_and_values() { 
-        if(is_single()) {
-         $category = $this->check_category(get_the_category());
-            $defaults = array(
-                'numberposts' => -1,
-                'category' => $category->term_id,
-                'order' => 'ASC'
-            );
-        $this->posts = $this->check_tag($defaults);
-        }
+    $posts = $this->get_posts_by_type();
     if(count($this->posts) > 4) { ?>
         <div class="wpb_column vc_column_container vc_col-sm-12" style="margin-bottom:20px;">
              <div class="vc_column-inner display">
@@ -425,31 +447,17 @@ class LeadGenerator_WP extends Landing_WP{
 //get posts
     public function get_data_values() { 
         wp_enqueue_script( 'loadmore', plugins_url( 'js/more.js', __FILE__ ) );
-        if(is_single()) {
-            $category = $this->check_category(get_the_category());
-                $defaults = array(
-                    'numberposts' => -1,
-                    'category' => $category->term_id,
-                    'order' => 'ASC'
-                );
-
-            $this->posts = $this->check_tag($defaults);
-                if(count($this->posts) > 4) {
-                    $this->column = '3';
-                } else {
-                    $this->column = '6';
-                }
-            }
+        
             foreach($this->posts as $post): setup_postdata( $post ); 
                 $value = get_post_meta($post->ID, '',false);
                 $categories = $this->check_category(get_the_category($post->ID)); ?>
-            <div class="wpb_column vc_column_container vc_col-sm-<?= $this->column ?> values_import" style="margin-bottom:60px;display:none;">
+            <div class="wpb_column vc_column_container vc_col-sm-<?= $this->columns() ?> values_import" style="margin-bottom:60px;display:none;">
                 <div class="vc_column-inner display">
                     <div class="wpb_wrapper">
                         <div class="wpb_column vc_column_container vc_col-sm-3" style="margin-bottom:20px;">
                             <div class="vc_column-inner ">
                                 <div class="wpb_wrapper">
-                                    <img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/casa_logo.png">
+                                    <img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/casa_logo.png">
                                 </div>
                             </div>
                         </div>
@@ -477,7 +485,8 @@ class LeadGenerator_WP extends Landing_WP{
     public function posts($category) {
         $args = array(
             'numberposts'   => -1,
-            'category'         => $category->term_id
+            'category'         => $category->term_id,
+            'order' => ASC
         );
                     
         return get_posts($args);
@@ -492,32 +501,20 @@ class LeadGenerator_WP extends Landing_WP{
 
     }
 
-
-    public function meta_values_posts($posts) {
-        foreach($posts as $single_post): 
+    public function get_ubication_array($args) {
         
-            $direc = get_post_meta($single_post->ID, 'store_id', true);
-            $lat = get_post_meta($single_post->ID, 'lat', true);
-            $long = get_post_meta($single_post->ID, 'long', true);
-            $ubication[] = '"' . $direc . '",' . $lat . ',' . $long;
-        endforeach;
+        $posts = get_posts($args);
 
-        return $ubication;
-    }
-
-    public function get_ubication_array($args) {        
-        $posts = $this->check_tag($args);
-        foreach($posts as $post):
+            foreach($posts as $post):            
                 $meta = get_post_meta($post->ID, '',false);
                 $ubication[] = $this->meta_ubi($meta);
-        endforeach;
+            endforeach;
 
         return $ubication;
     }
 
     
     public function check_tag($args) {
-
         if(isset($_GET['promo'])) {
             foreach(get_posts($args) as $post):
                 $tag = wp_get_post_tags($post->ID);
@@ -542,7 +539,7 @@ class LeadGenerator_WP extends Landing_WP{
         <div class="vc_column-inner ">
             <div class="wpb_wrapper" style="border-right: 1px solid;">
                 <div class="bloque3_left">
-                    <img alt="overweight" src="/wp-content/uploads/2017/01/overweight_last.jpg" id="img_bmi" name="img_bmi" /></p>
+                    <img alt="overweight" src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/overweight_last.jpg" id="img_bmi" name="img_bmi" /></p>
                     <div class="bmi_dato bmi_dato_2">26.23</div>
                 </div>
             </div>
@@ -552,9 +549,9 @@ class LeadGenerator_WP extends Landing_WP{
         <div class="vc_column-inner ">
         <div class="wpb_wrapper">
             <div class="bloque3_right">
-                <div class="definicion_BMI">
-                    <p>El IMC(Indice de Masa Corporal) según la OMS es un indicador entre e lpeso y la talla qu se utilzia frecuentemente para identificar el sobrepeso y la obesidad en los adultos.</p>
-                    <p>Tanto el sobrepeso como la obesidad son actualmente el 5º factor principal del riesgo de defuncion del mundo. Este test no está recomendado para los niños ni mujeres embarazadas o en periodo de lactancia.</p>
+                <<div class="definicion_BMI">
+                    <p>El IMC(Indice de Masa Corporal) según la OMS es un indicador entre el peso y la talla que se utiliza frecuentemente para identificar el sobrepeso y la obesidad en los adultos.</p>
+                    <p>Tanto el sobrepeso como la obesidad son actualmente el 5º factor principal del riesgo de defunción del mundo. Este test no está recomendado para los niños ni mujeres embarazadas o en periodo de lactancia.</p>
                 </div>
                 <div class="explicacion_BMI">
                     <b>Te encuentras por encima de tu peso óptimo</b>. Pide asesoramiento en tu centro Naturhouse más cercano, donde te ayudarán a perder los kilos que te sobran hasta alcanzar el peso más adecuado a tu altura, sexo y constitución.
@@ -562,17 +559,17 @@ class LeadGenerator_WP extends Landing_WP{
                         <div class="BMI_results">
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_height"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/altura.png" class="left"> ALTURA: <span class="resultado_dato" id="height_orig"></span></div>
+                                    <div class="BMI_height"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/altura.png" class="left"> ALTURA: <span class="resultado_dato" id="height_orig"></span></div>
                                  </div>
                             </div>
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_weight"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/peso.png" class="left"> PESO: <span class="resultado_dato" id="weight_orig"></span></div>
+                                    <div class="BMI_weight"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/peso.png" class="left"> PESO: <span class="resultado_dato" id="weight_orig"></span></div>
                                 </div>
                             </div>
                             <div class="wpb_column vc_column_container vc_col-sm-4">
                                 <div class="wpb_wrapper">
-                                    <div class="BMI_target_weight"><img src="<?= plugins_url() ?>/leadgeneneratordynamic/img/objetivo.png" class="left"> OBJETIVO DE PESO: <span class="resultado_dato resultado_dato_target" id="target_weight_orig"></span></div>
+                                    <div class="BMI_target_weight"><img src="<?= plugins_url() ?>/<?= $this->plugin_name ?>/img/objetivo.png" class="left"> OBJETIVO DE PESO: <span class="resultado_dato resultado_dato_target" id="target_weight_orig"></span></div>
                                 </div>
                             </div>
                         </div>
@@ -596,11 +593,12 @@ class LeadGenerator_WP extends Landing_WP{
                         'category' => $category->term_id,
                     );
                     $zoom = 11;
-                break;
+                continue;
 
                 case 'category':
+                    $category  = get_category( get_query_var( 'cat' ) );
                     $args = array(
-                        'category' => $this->category_simple->term_id,
+                        'category' => $category->term_id,
                         'numberposts' => -1
                     );     
                     $zoom = 6;
@@ -614,30 +612,27 @@ class LeadGenerator_WP extends Landing_WP{
                 case 'cp_id':
                     $meta = get_post_meta($this->code[0]->ID, '',false);   
                     $zoom = 12;
-                continue;
+                break;
 
-                case 'other':
+                case 'frontpage':
                     $args = array (
                         'numberposts' => -1,
                     );
                     $zoom = 5;
                 continue;
             endswitch;
-
-        $ubication = $this->meta_values_posts($posts);  ?>
+            $values = $this->get_ubication_array($args);
+        ?>
         <div id="mapa"></div>
-         
-
-                <script type="text/javascript">
-                function initialize() {
+        <script type="text/javascript">
+            function initialize() {
                 var marcadores = [
-                <?php if( isset($this->store_id) OR isset($this->cp_id)) { echo '[' . $this->meta_ubi($meta) . '],'; 
-                        } else { 
-                      foreach($this->get_ubication_array($args) as $value): echo '[' . $value . '],'; endforeach;} ?> ];
+                <?php if( isset($_GET['store_id']) OR isset($_GET['cp'])) { echo '[' . $this->meta_ubi($meta) . '],'; 
+                        } else { foreach($values as $value): echo '[' . $value . '],'; endforeach;} ?> ];
                 var map = new google.maps.Map(document.getElementById('mapa'), {
                     zoom: <?= $zoom ?>,
                     center: new google.maps.LatLng(
-                        <?php  if( isset($this->store_id) OR isset($this->cp_id)) { 
+                        <?php  if( isset($_GET['store_id']) OR isset($_GET['cp'])) { 
                                     echo $meta['lat'][0] . ',' . $meta['long'][0]; 
                                 } elseif(is_single()) {
                                     preg_match_all("/(.*\"),(.*)/", $value, $out); echo $out[2][0]; 
@@ -667,7 +662,7 @@ class LeadGenerator_WP extends Landing_WP{
                 }
                 }
                 google.maps.event.addDomListener(window, 'load', initialize);
-                </script>
+        </script>
         <?php 
         }
     }
