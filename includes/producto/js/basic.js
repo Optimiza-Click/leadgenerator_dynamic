@@ -15,11 +15,21 @@ jQuery(function($) {
 });
 
 jQuery(function($) {
-    jQuery('#text_cp').on('keypress', function(e) {
-        if (e.which === 13) {
-            var cp = jQuery('#text_cp').val();
-            window.location.href = "/tienda/?cp=" + cp;
-        }
+    jQuery('#send_cp').click(function() {
+        var provincia = jQuery("#provincia").val();
+        var localidad = jQuery("#localidad").val();
+        var cp = jQuery('#text_cp').val();
+            jQuery.ajax({
+                type: "GET",
+                url: 'http://dietas.naturhouse.es/versions/current/',
+                data: "?cp_data=" + cp + '&provincia=' + provincia + '&localidad=' + localidad,
+                success: function(data) {
+                    console.log(data);
+                var url = JSON.parse(data);
+                jQuery(location).attr('href', url);
+                }
+
+       });
     });
 });
 
@@ -60,18 +70,19 @@ jQuery(function($) {
         var localidad = $("#localidad").val();
         jQuery.ajax({
             type: "GET",
-            url: "/nutricionista-para-adelgazar/",
+            url: "http://dietas.naturhouse.es/versions/current/nutricionista-para-adelgazar/",
             data: "?local_id=" + localidad,
             success: function(data) {
                 var str2 = "http";
                 var obj = jQuery.parseJSON(data);
+              
                 if (obj.value == true) {
                     jQuery('.message_prov').text('¿Conoces tu codigo postal?').css('font-size', '25px');
                     jQuery(".codigo_postal a").attr("class", obj.url);
                     jQuery('.codigo_postal').css("display", "block");
                     jQuery('.provincia_select').css("display", "none");
                 } else {
-                    jQuery(location).attr('href', obj.url);
+                   jQuery(location).attr('href', obj.url);
                 }
             }
         });
@@ -116,6 +127,15 @@ jQuery(function($) {
         jQuery('#provincia').animate({ height: 'toggle' }).css("display", "block");
     });
 });
+
+jQuery(function($) {
+    jQuery('#come_back_cp').click(function(e) {
+        jQuery('.message_prov').text('¿Cuál es tu localidad?');
+        jQuery('.codigo_postal').css("display", "none");
+        jQuery('.provincia_select').animate({ height: 'toggle' }).css("display", "block");
+    });
+});
+
 
 jQuery(function($) {
     jQuery('#categories_display').click(function(e) {

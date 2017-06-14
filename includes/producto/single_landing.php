@@ -12,6 +12,22 @@ if (!class_exists('Landing_WP'))
         public function __construct() {
             add_action('wp_head', array($this, 'modal'));
             add_action('init', array($this, 'get_parent'));
+            add_action('init', array($this, 'cp_data'));
+        }
+
+        public function cp_data(){
+        global $leadgenerator;
+            if(isset($_GET['cp_data'])) {
+
+                    $cp = $_GET['cp_data'];
+
+                $provincia = get_category($_GET['provincia']);
+                $localidad = get_category($_GET['localidad']);
+
+                    print_r(json_encode(get_site_url() . '/' . $provincia->slug . '/' . str_replace(' ', '-',strtolower($localidad->name) . '/?cp=' . $cp)));
+                
+                die();
+            }
         }
 
         public function get_parent() {
@@ -47,7 +63,7 @@ if (!class_exists('Landing_WP'))
                     } else {
 
                         $category = $leadgenerator->check_category(get_the_category($post[0]->ID));
-
+   
                         $args = array(
                             'url' =>  get_category_link($category->category_parent) . $leadgenerator->limpiar(str_replace(' ','-',strtolower($category->name))),
                             'value' => false
@@ -94,8 +110,12 @@ if (!class_exists('Landing_WP'))
             </div>
             <div class="codigo_postal" style="display:none">
             <h4 class="message_prov">¿Conoces tu codigo postal?</h4>
-                <input id="text_cp" class="code_postal" type="text"></input>
+             
+                    <input id="text_cp" class="code_postal" type="text"></input>
+                    <a id="send_cp">Enviar</a>
+             
                 <a id="categories_display"><small style="color:#506f67;text-decoration: underline;margin: 0 auto;display: table;">no lo conozco / no lo recuerdo</small></a>
+                <a id="come_back_cp"><small style="text-align:right;color:#506f67;float:right">< volver atrás</small></a>
             </div>
 		</div>
         <?php
@@ -150,6 +170,7 @@ if (!class_exists('Landing_WP'))
                     <h4 class="message_prov">¿Conoces tu codigo postal?</h4>
                         <input id="text_cp" class="code_postal" type="text"></input>
                         <a id="categories_display"><small style="color:#506f67;text-decoration: underline;margin: 0 auto;display: table;">no lo conozco / no lo recuerdo</small></a>
+                    </form>
                     </div>
                 </div>
             <?php
