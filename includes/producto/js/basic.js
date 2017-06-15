@@ -19,14 +19,15 @@ jQuery(function($) {
         var provincia = jQuery("#provincia").val();
         var localidad = jQuery("#localidad").val();
         var cp = jQuery('#text_cp').val();
+        jQuery("#basic-modal-content").fadeOut("slow");
             jQuery.ajax({
                 type: "GET",
-                url: 'http://dietas.naturhouse.es/versions/current/',
+                url: home_page,
                 data: "?cp_data=" + cp + '&provincia=' + provincia + '&localidad=' + localidad,
                 success: function(data) {
-                    console.log(data);
-                var url = JSON.parse(data);
-                jQuery(location).attr('href', url);
+                    
+                    var url = JSON.parse(data);
+                    jQuery(location).attr('href', url);
                 }
 
        });
@@ -40,11 +41,12 @@ jQuery(function($) {
         jQuery("#basic-modal-content").fadeOut("slow");
         jQuery.ajax({
             type: "GET",
-            url: "/",
+            url: home_page,
             data: "?category_id=" + provincia,
             success: function(data) {
                 var str2 = "http";
                 if (data.indexOf(str2) != -1) {
+
                     jQuery(location).attr('href', data);
                 } else {
                     jQuery("#basic-modal-content").fadeOut("slow", function() {
@@ -70,7 +72,7 @@ jQuery(function($) {
         var localidad = $("#localidad").val();
         jQuery.ajax({
             type: "GET",
-            url: "http://dietas.naturhouse.es/versions/current/nutricionista-para-adelgazar/",
+            url: home_page,
             data: "?local_id=" + localidad,
             success: function(data) {
                 var str2 = "http";
@@ -101,7 +103,7 @@ jQuery(function($) {
             success: function(data) {
                 var str2 = "http";
                 if (data.indexOf(str2) != -1) {
-                    jQuery(location).attr('href', data);
+                   jQuery(location).attr('href', data);
                 } else {
                     jQuery("#basic-modal-content").fadeOut("slow", function() {
                         jQuery('.message_prov').text('¿Cuál es tu localidad?');
@@ -149,5 +151,14 @@ jQuery(function($) {
     jQuery('.promo').change(function(e) {
         var url = jQuery(".promo").val();
         window.location.href = url;
+    });
+});
+
+jQuery(function($) {
+    jQuery('#text_cp').on('keypress', function(e) {
+        if (e.which === 13) {
+            var cp = jQuery('#text_cp').val();
+            window.location.href = home_page + "/?cp=" + cp;
+        }
     });
 });

@@ -2,8 +2,31 @@ div#basic-modal-content {
     background: white;
     padding: 40px 30px;
     /* width: 250px; */
-    height: 140px;
+    height: 180px;
     border-radius: 5px;
+}
+
+
+#send_cp {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 15px;
+    line-height: 23px;
+    text-align: center;
+    margin: 5px auto;
+    /* margin: -1px auto; */
+    color: white;
+    display: block;
+    font-style: normal;
+    font-weight: 400;
+    border: 0px;
+    letter-spacing: 0px;
+    text-transform: none;
+    border-radius: 3px;
+    background: #da4871;
+    background: -moz-linear-gradient(top, #da4871 0%, #8a324b 100%);
+    background: -webkit-linear-gradient(top, #da4871 0%, #8a324b 100%);
+    background: linear-gradient(to bottom, #da4871 0%, #8a324b 100%);
+    filter: progid: DXImageTransform.Microsoft.gradient( startColorstr='#da4871', endColorstr='#8a324b', GradientType=0);
 }
 
 div#simplemodal-overlay {

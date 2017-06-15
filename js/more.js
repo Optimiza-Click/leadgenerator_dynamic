@@ -73,13 +73,15 @@ jQuery(document).ready(function() {
            }
         }
         jQuery('form').append('<input type="hidden" name="promo" value="' + jQuery.urlParam('promo') + '" />');
-        var myString = jQuery(this).find("option:selected").text();
-        var direccion = myString.substring(myString.indexOf(',') + 1)
+        var myString = jQuery(this).find("option:selected").val();
+        var direccion = myString.substring(myString.indexOf(',') + 1);
+
         jQuery.ajax({
             type: "GET",
-            url: "http://dietas.naturhouse.es/",
+            url: home_page,
             data: "?direccion_form=" + direccion,
             success: function(data) {
+                console.log(data);
                 var json = JSON.parse(data);
                 jQuery('form').append('<input type="hidden" name="store_id" value="' + json.store_id + '" />');
                 jQuery('.text_with_image_background').html('En este centro te espera:<br />' + json.nutricionista).html();
