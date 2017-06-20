@@ -13,18 +13,22 @@ Copyright: 2016 - 2017
 require_once dirname( __FILE__ ) . '/includes/producto/single_landing.php';
 require_once dirname( __FILE__ ) . '/includes/promociones/single_product.php';
 
-if ( ! defined( 'ABSPATH' ) ) exit; 
+if ( ! defined( 'ABSPATH' ) ) exit;
 if ( ! class_exists( 'LeadGenerator_WP' ) ) {
 class LeadGenerator_WP extends Landing_WP{
 
     public function __construct() {
-     
+
         //get all values in init
         add_action('wp_head', array($this, 'init'));
         add_action('wp_head', array($this, 'get_type_of_post'));
         add_action('init', array($this, 'promo_taxonomy'));
         add_action('wp_footer', array($this, 'check_id'));
         add_action('wp_footer', array($this, 'inyector'));
+        add_action( 'admin_init', array( $this, 'AddMetaBoxCustomPostType' ) );
+        add_action( 'wpcf7_init', array( $this, 'check_mail_promo_value' ) );
+        add_action( 'wp_footer', array( $this, 'BannerIfPromoLead' ) );
+
         //print the shortcodes
         add_shortcode( 'get_meta_ubication', array($this, 'get_meta_ubication'));
         add_shortcode( 'get_ubication_loc', array($this, 'get_ubication_loc'));
@@ -32,13 +36,15 @@ class LeadGenerator_WP extends Landing_WP{
         add_shortcode( 'get_map_and_values', array($this, 'get_map_and_values'));
         add_shortcode( 'get_promo_banner', array($this, 'get_promo_banner'));
         add_shortcode( 'display_weight', array($this, 'display_weight'));
+        add_shortcode( 'url_boucher_meta_get', array($this, 'url_boucher_meta_get'));
         add_shortcode( 'title', array($this, 'title'));
         add_shortcode( 'subtitle', array($this, 'subtitle'));
-    
+
         //rewrite data in form with store id
         add_action( 'init', array($this, 'rewrite_form'));
 
-        add_filter( 'wpcf7_form_tag', array($this,'cf7_rewrite_list_of_mails'), 10, 2);  
+        add_filter( 'save_post', array( $this, 'SaveMetaBoxCustomPostType' ), 10, 2 );
+        add_filter( 'wpcf7_form_tag', array($this,'cf7_rewrite_list_of_mails'), 10, 2);
         $this->wasChecked = false;
     }
 
@@ -57,13 +63,13 @@ class LeadGenerator_WP extends Landing_WP{
     public $load_template;
     public $plugin_name = 'leadgenerator_dynamic';
     public $plugins;
-    
+
     public $wasChecked;
 
     public $postFiltered = null;
     public $wasInit =false;
 
-   
+
 
 //initizalizate
     public function init() {
@@ -74,7 +80,7 @@ class LeadGenerator_WP extends Landing_WP{
 
         $this->category_simple = get_category( get_query_var( 'cat' ) );
         $this->slug = get_the_category();
-        $this->category = get_category_by_slug($this->slug[0]->slug); 
+        $this->category = get_category_by_slug($this->slug[0]->slug);
 
         $this->store_id = isset($_GET['store_id']);
         $this->cp_id = isset($_GET['cp']);
@@ -95,9 +101,9 @@ class LeadGenerator_WP extends Landing_WP{
         $args = array(
             'post_type' => 'promo-naturhouse'
         );
-        
-        $this->store_ids = get_post_meta($this->get_post_by_promo($_GET['promo']),'promo_leadgenerator_store_id',true); 
-        
+
+        $this->store_ids = get_post_meta($this->get_post_by_promo($_GET['promo']),'promo_leadgenerator_store_id',true);
+
 
         $this->posts =  get_posts(array(
             'numberposts'	=> -1,
@@ -106,12 +112,12 @@ class LeadGenerator_WP extends Landing_WP{
             'meta_value'	=> $this->store_ids
         ));
 
-        
 
-      
-        
-       
-       
+
+
+
+
+
 
         $this->plugins = $this->get_posts_by_type();
 
@@ -121,32 +127,50 @@ class LeadGenerator_WP extends Landing_WP{
 
     public function get_promo_banner() {
         if(isset($_GET['promo'])) {
-            $promo = get_post_meta($this->get_post_by_promo($_GET['promo']),'bannerpromo',true); 
+            $promo = get_post_meta($this->get_post_by_promo($_GET['promo']),'bannerpromo',true);
                 return $promo;
-        } 
+        }
     }
 
+    public function CheckMailPromoValue($tag) {
+      if(isset($_GET['promo'])){
+        global $post;
+        $page_promotion = $this->get_post_by_promo($_GET['promo']);
+        $text_value_promotion = get_post_meta($page_promotion, 'mailpromo',true);
+
+        return '<input type="hidden" name="url_boucher" value="' . do_shortcode($text_value_promotion) . '"></input>';
+      }
+    }
+
+    public function check_mail_promo_value()
+    {
+      wpcf7_add_form_tag( 'url_boucher', array($this, 'CheckMailPromoValue') );
+    }
+
+    public function url_boucher_meta_get() {
+      return get_site_url() . '/promo-naturhouse/' . $_GET['promo'] . '/?store_id=' . $_GET['store_id'];
+    }
 
     public function countStoresByParentCategory($category_id)
     {
         $elements = 0;
-       
+
         foreach($this->posts as $post){
-            
+
             if($this->getParentCategory($post->ID) == $category_id){
-               
+
                 $elements++;
             }
         }
-       
+
         return $elements;
     }
 
     public function getParentCategory($postId)
     {
-       
+
         $categories = (get_the_category($postId));
-        
+
         foreach($categories as $category){
             if($category->category_parent == 0){
                 return $category->term_id;
@@ -156,7 +180,7 @@ class LeadGenerator_WP extends Landing_WP{
 
     public function getChildCategory($postId)
     {
-       
+
         $categories = (get_the_category($postId));
         foreach($categories as $category){
             if($category->category_parent != 0){
@@ -165,7 +189,7 @@ class LeadGenerator_WP extends Landing_WP{
         }
     }
 
-    public function inyector() 
+    public function inyector()
     {
         if($this->isPromo()) {
           echo '<div id="promociones-naturhouse-tracking-id"></div>';
@@ -176,11 +200,12 @@ class LeadGenerator_WP extends Landing_WP{
         <?php
     }
 
+
+
     public function getCategories(){
-        $hierarchy=[];
-        
+      $hierarchy=[];
+
         foreach($this->posts as $post){
-            
             $parent = $this->getParentCategory($post->ID);
             $child = $this->getChildCategory($post->ID);
 
@@ -188,26 +213,19 @@ class LeadGenerator_WP extends Landing_WP{
                 $hierarchy[$parent->term_id] = ['category'=>get_category($parent),'childs'=>[]];
             }
 
-            $hierarchy[$child->category_parent]['childs'][] = get_category($child);
-
-
+          $hierarchy[$child->category_parent]['childs'][] = get_category($child);
         }
-       
 
-        usort($hierarchy, [$this,'orderCategories']);
+      usort($hierarchy, [$this,'orderCategories']);
 
-       
-        
-        
-       
-        return $hierarchy;
+      return $hierarchy;
     }
 
     public function orderCategories($a,$b)
     {
         return $a['category']->name >  $b['category']->name ? 1:-1;
     }
-    
+
 
     public function isPromo()
     {
@@ -215,21 +233,21 @@ class LeadGenerator_WP extends Landing_WP{
     }
 
     public function check_id() {
-       
+
         if(isset($_GET['cp'])){
         echo '<div id="value_check_status_cp_id"></div>';
         }
-       
+
         echo "<script> var promo_id = \"". (isset($_GET['promo'])?$_GET['promo']:'')   ."\" </script>";
-       
+
     }
 
     public function get_posts_by_type() {
             $copy = $this->get_type_of_post();
-            
-           
 
-          
+
+
+
 
             switch($copy):
                 case 'single':
@@ -237,15 +255,15 @@ class LeadGenerator_WP extends Landing_WP{
                     $defaults = array(
                         'numberposts' => -1,
                         'category' => $category->term_id,
-                        'orderby' => 'title',                                             
+                        'orderby' => 'title',
                         'order' => 'ASC'
                     );
 
-                
 
-                    
+
+
                     $this->posts = $this->check_tag($defaults);
-                    
+
                 break;
 
                 case 'category':
@@ -260,7 +278,7 @@ class LeadGenerator_WP extends Landing_WP{
 
                     $this->posts = $this->check_tag($defaults);
 
-                   
+
                 break;
 
                 case 'store_id':
@@ -287,7 +305,7 @@ class LeadGenerator_WP extends Landing_WP{
                 case 'frontpage':
                      $defaults = array(
                         'numberposts' => -1,
-                        'category' => 0, 
+                        'category' => 0,
                         'orderby' => 'title',
                         'order' => 'ASC'
                     );
@@ -295,7 +313,7 @@ class LeadGenerator_WP extends Landing_WP{
                 break;
 
                 default:
-               
+
             endswitch;
 
         return $this->posts;
@@ -307,7 +325,7 @@ class LeadGenerator_WP extends Landing_WP{
                     'posts_per_page' => -1,
                     'post_type' => 'promo-naturhouse',
                 ));
-         
+
             foreach($posts_array as $post) {
                 if($post->post_name == $promo_id) {
                     return $post->ID;
@@ -316,10 +334,44 @@ class LeadGenerator_WP extends Landing_WP{
         }
     }
 
+    public function AddMetaBoxCustomPostType() {
+        add_meta_box("display_options_custom_post", "DisplayOptions", array( $this,"MetaBoxesDisplayCustomPostType"), "post", "normal", "low");
+    }
+
+    public function MetaBoxesDisplayCustomPostType() {
+        global $post;
+
+         $all_meta_boxes = get_post_meta($post->ID, '', false);
+
+         foreach($all_meta_boxes as $meta_box => $meta_box_value) {  ?>
+            <p>
+            <label>Option <?= $meta_box ?></label><br />
+            <textarea cols="150" rows="2" name="<?= $meta_box ?>" class="width99"><?= $meta_box_value[0] ?></textarea>
+            </p>
+         <?php }
+    }
+
+    public function SaveMetaBoxCustomPostType() {
+          global $post;
+
+          $all_meta_boxes = get_post_meta($post->ID, '', false);
+
+         foreach($all_meta_boxes as $single_metabox_key => $single_metabox_value) {
+             $array_metas_options[] = $single_metabox_key;
+         }
+            if ( $post ) {
+                foreach($_POST as $key => $value) {
+                    if(in_array($key, $array_metas_options)) {
+                         update_post_meta($post->ID, $key, $value);
+                    }
+                }
+            }
+    }
+
     public function rand_posts() {
           $defaults = array(
                 'numberposts' => 4,
-                'category' => 0, 
+                'category' => 0,
         );
 
         return get_posts($defaults);
@@ -334,7 +386,7 @@ class LeadGenerator_WP extends Landing_WP{
         return $this->column;
     }
 
-    
+
     public function get_type_of_post() {
         global $post;
 
@@ -346,7 +398,7 @@ class LeadGenerator_WP extends Landing_WP{
                 'meta_value'	=> $_GET['cp']
             ));
         endif;
-        
+
         if(count($posts) > 0):
             $args = array(
                 'cp_id' => isset($_GET['cp'])
@@ -359,23 +411,23 @@ class LeadGenerator_WP extends Landing_WP{
                 'frontpage' => is_front_page()
             );
         endif;
-    
+
         foreach($args as $arr => $key):
             if($key == TRUE) {
                 return $arr;
             }
         endforeach;
 
-      
+
     }
 
-    public function rewrite_form() { 
+    public function rewrite_form() {
         if(isset($_GET['direccion_form'])) {
-            
+
              $post = get_posts(array(
                 'numberposts'	=> -1,
                 'post_type'		=> 'post',
-                'meta_key'		=> 'email',
+                'meta_key'		=> 'direc',
                 'meta_value'	=> $_GET['direccion_form']
             ));
 
@@ -384,13 +436,34 @@ class LeadGenerator_WP extends Landing_WP{
                 'store_id' => get_post_meta($post[0]->ID, 'store_id', true),
                 'nutricionista' => get_post_meta($post[0]->ID, 'nutricionista', true)
             );
-            
+
             echo json_encode($args);
 
             die();
         }
     }
-        
+
+    public function BannerIfPromoLead() {
+     if(isset($_GET['promo'])){
+       ?>
+       <script>
+       jQuery(document).ready(function() {
+         jQuery('.wpcf7-submit').mouseover(function() {
+           var store_id = jQuery('#store_id_value').val();
+           console.log(store_id);
+           var voucher = "<?= do_shortcode('[url_boucher_meta_get]') ?>";
+           jQuery( ".page-template" ).append( '<div class="full_width_banner"><p>' + voucher + store_id + '</p></div>' );
+         });
+
+         jQuery('.full_width_banner').click(function() {
+           jQuery('.full_width_banner').css('display', 'none');
+         });
+       });
+       </script>
+       <?php
+     }
+    }
+
     public function limpiar($String){
         $String = str_replace(array('á','à','â','ã','ª','ä'),"a",$String);
         $String = str_replace(array('Á','À','Â','Ã','Ä'),"A",$String);
@@ -409,7 +482,7 @@ class LeadGenerator_WP extends Landing_WP{
         $String = str_replace("Ñ","N",$String);
         $String = str_replace("Ý","Y",$String);
         $String = str_replace("ý","y",$String);
-        
+
         $String = str_replace("&aacute;","a",$String);
         $String = str_replace("&Aacute;","A",$String);
         $String = str_replace("&eacute;","e",$String);
@@ -420,9 +493,9 @@ class LeadGenerator_WP extends Landing_WP{
         $String = str_replace("&Oacute;","O",$String);
         $String = str_replace("&uacute;","u",$String);
         $String = str_replace("&Uacute;","U",$String);
-        
+
     return $String;
-    }   
+    }
 
     public function load_template($s) {
         $template = get_post($s);
@@ -440,35 +513,35 @@ class LeadGenerator_WP extends Landing_WP{
         }
     }
 
-    public function cf7_rewrite_list_of_mails ( $tag, $unused ) {  
-    if ( $tag['name'] != 'plugin-list' )  
-        return $tag; 
-    
+    public function cf7_rewrite_list_of_mails ( $tag, $unused ) {
+    if ( $tag['name'] != 'plugin-list' )
+        return $tag;
+
     $plugins = $this->posts;
 
 
-    if ( ! $plugins )  
-        return $tag;  
-        
+    if ( ! $plugins )
+        return $tag;
+
         foreach($plugins as $plugin):
-                $direction = get_post_meta($plugin->ID, 'direc',true);  
-                $mail = get_post_meta($plugin->ID, 'email',true);  
+                $direction = get_post_meta($plugin->ID, 'direc',true);
+                $mail = get_post_meta($plugin->ID, 'email',true);
 
                 if($mail != '') {
-                    $tag['raw_values'][] = $mail; 
+                    $tag['raw_values'][] = $mail;
                     $tag['values'][] = $mail;
                 } else {
-                    $tag['raw_values'][] = 'patrocinios@naturhouse.com'; 
+                    $tag['raw_values'][] = 'patrocinios@naturhouse.com';
                     $tag['values'][] = 'patrocinios@naturhouse.com';
                 }
 
                 $tag['labels'][] = $plugin->post_title . ', ' . substr($direction,0,60);
         endforeach;
 
-    return $tag;  
-    }   
+    return $tag;
+    }
 
-    public function promo_taxonomy() {   
+    public function promo_taxonomy() {
             $labels = array(
                 'name' => translate( 'Promociones', 'promo-naturhouse' ),
                 'singular_name' => translate( 'Paginas de promociones', 'promo-naturhouse' ),
@@ -507,12 +580,12 @@ class LeadGenerator_WP extends Landing_WP{
             'all_items'           => __( 'Todas los Cupones' ),
             'parent_item'         => __( 'Categorias unidas' ),
             'parent_item_colon'   => __( 'Categorias emparejadas:' ),
-            'edit_item'           => __( 'Editar categoria' ), 
+            'edit_item'           => __( 'Editar categoria' ),
             'update_item'         => __( 'Actualizar Categoria' ),
             'add_new_item'        => __( 'Añadir nueva categoria' ),
             'new_item_name'       => __( 'Añadir nombre de categoria' ),
             'menu_name'           => __( 'Cupones' )
-        );    
+        );
         $args = array(
             'hierarchical'        => true,
             'labels'              => $labels,
@@ -521,10 +594,10 @@ class LeadGenerator_WP extends Landing_WP{
             'query_var'           => true,
             'rewrite'             => array( 'slug' => 'promo_categories' )
         );
-        
+
         register_taxonomy( 'promo_cupon', array( 'promo-naturhouse' ), $args );
     }
-    
+
 
     public function meta_ubi($meta) {
          return '"' . $meta['store_id'][0] . '",' . $meta['lat'][0] . ',' . $meta['long'][0];
@@ -547,7 +620,7 @@ class LeadGenerator_WP extends Landing_WP{
             return $category[0];
         }
     }
-    
+
 //get posts by store_id
     public function get_page_store() {
         if(isset($this->store_id)) {
@@ -557,7 +630,7 @@ class LeadGenerator_WP extends Landing_WP{
             'meta_value' => $this->store_id
         ));
 
-           wp_redirect( esc_url( add_query_arg( 'single', 'true', get_permalink($post[0]->ID) ) ) );      
+           wp_redirect( esc_url( add_query_arg( 'single', 'true', get_permalink($post[0]->ID) ) ) );
          exit;
         }
     }
@@ -565,7 +638,7 @@ class LeadGenerator_WP extends Landing_WP{
 //get the title
     public function title() {
         $posts = $this->get_type_of_post();
-        
+
         switch($posts):
                 case 'single':
                     $meta = get_post_meta($this->id, '',false);
@@ -573,7 +646,7 @@ class LeadGenerator_WP extends Landing_WP{
                 break;
 
                 case 'category':
-                    echo '<h1>' . get_bloginfo() . ' <span>' . $this->category_simple->name . '</span></h1>'; 
+                    echo '<h1>' . get_bloginfo() . ' <span>' . $this->category_simple->name . '</span></h1>';
                 break;
 
                 case 'store_id':
@@ -600,9 +673,9 @@ class LeadGenerator_WP extends Landing_WP{
                 case 'frontpage':
                     echo '<h1>' . get_bloginfo() . ' <span>' . get_the_title() . '</span></h1>';
                 break;
-        endswitch;   
+        endswitch;
     }
-    
+
 
 
     public function subtitle() {
@@ -611,32 +684,32 @@ class LeadGenerator_WP extends Landing_WP{
                 echo '<div class="text_with_image_background claim">Aqui tienes otros centros <br />relacionados</div>';
                 echo '<div class="texto_contact">';
                 echo '<h4>Puedes volver a buscar</h4>';
-                echo '<h3>Tu tienda</h3>';    
-                echo '</div>';    
+                echo '<h3>Tu tienda</h3>';
+                echo '</div>';
             } else {
                 $nutri_name = get_post_meta($this->store_posts[0]->ID, 'nutricionista',true);
                 echo '<div class="text_with_image_background claim">En este centro te espera:<br />' . $nutri_name . '</div>';
                 echo '<div class="texto_contact">';
                 echo '<h4>Te ayudará a</h4>';
-                echo '<h3>alcanzar<br>tus objetivos</h3>';    
-                echo '</div>';        
+                echo '<h3>alcanzar<br>tus objetivos</h3>';
+                echo '</div>';
             }
         } else {
             echo '<div class="text_with_image_background claim">Selecciona tu centro Naturhouse más cercano</div>';
             echo '<div class="texto_contact">';
             echo '<h4>Y alcanza tus objetivos</h4>';
-            echo '<h3>con la ayuda de<br />tu nutricionista</h3>';    
-            echo '</div>'; 
+            echo '<h3>con la ayuda de<br />tu nutricionista</h3>';
+            echo '</div>';
         }
     }
 
 
-    public function get_map_and_values() { 
+    public function get_map_and_values() {
     $posts = $this->get_posts_by_type();
 
-   
-  
-   
+
+
+
     if(count($posts) > 4) { ?>
         <div class="wpb_column vc_column_container vc_col-sm-12" style="margin-bottom:20px;">
              <div class="vc_column-inner display">
@@ -661,7 +734,7 @@ class LeadGenerator_WP extends Landing_WP{
                  </div>
             </div>
         </div>
-        <?php 
+        <?php
         } else {
         ?>
         <div class="wpb_column vc_column_container vc_col-sm-6 cp_displayer" style="margin-bottom:20px;">
@@ -685,10 +758,10 @@ class LeadGenerator_WP extends Landing_WP{
 
 
 //get posts
-    public function get_data_values() { 
+    public function get_data_values() {
         $posts = $this->get_posts_by_type();
         wp_enqueue_script( 'loadmore', plugins_url( 'js/more.js', __FILE__ ) );
-            foreach($posts as $post): setup_postdata( $post ); 
+            foreach($posts as $post): setup_postdata( $post );
                 $value = get_post_meta($post->ID, '',false);
                 $categories = $this->check_category(get_the_category($post->ID)); ?>
             <div class="wpb_column vc_column_container vc_col-sm-<?= $this->columns() ?> values_import" style="margin-bottom:60px;display:none;">
@@ -716,9 +789,9 @@ class LeadGenerator_WP extends Landing_WP{
                         </div>
                     </div>
                 </div>
-            </div>  
+            </div>
             <?php
-            endforeach; 
+            endforeach;
         }
 
 //get posts by category
@@ -728,11 +801,11 @@ class LeadGenerator_WP extends Landing_WP{
             'category'         => $category->term_id,
             'order' => ASC
         );
-                    
+
         return get_posts($args);
 
     }
-    
+
 //get meta values
     public function get_meta_values($args) {
 
@@ -742,10 +815,10 @@ class LeadGenerator_WP extends Landing_WP{
     }
 
     public function get_ubication_array($args) {
-        
+
         $posts = $this->check_tag($args);
 
-            foreach($posts as $post):            
+            foreach($posts as $post):
                 $meta = get_post_meta($post->ID, '',false);
                 $ubication[] = $this->meta_ubi($meta);
             endforeach;
@@ -761,40 +834,40 @@ class LeadGenerator_WP extends Landing_WP{
         }
         return $promos;
     }
-    
 
-   
+
+
     public function check_tag($args) {
         if($this->isPromo()) {
             if($this->wasInit == false){
                 $this->init();
             }
-          
+
             if($this->wasChecked == true){
-              
+
                 return $this->postFiltered;
             }
             $this->wasChecked =  true;
             $posts = get_posts($args);
-            
 
-            
+
+
             $actives = [];
             foreach($posts as $post){
                 if(in_array($post->ID,$this->getStoresWithPromo())){
-                   
+
                     $actives[] = $post;
- 
+
                 }
             }
 
-            $this->postFiltered = $actives; 
+            $this->postFiltered = $actives;
 
             return $actives;
         } else {
-           
-            $posts = get_posts($args); 
-           
+
+            $posts = get_posts($args);
+
 
             return $posts;
         }
@@ -849,20 +922,20 @@ class LeadGenerator_WP extends Landing_WP{
         </div>
     <?php
     }
-    
-//get meta ubication   
+
+//get meta ubication
     public function get_meta_ubication($atts = []) {
         $copy = $this->get_type_of_post();
 
         switch($copy):
                 case 'single':
-                    $category = $this->check_category(get_the_category());         
+                    $category = $this->check_category(get_the_category());
                     $args = array(
                         'numberposts' => -1,
                         'category' => $category->term_id,
                     );
 
-                    
+
                     $zoom = 11;
                 break;
 
@@ -871,7 +944,7 @@ class LeadGenerator_WP extends Landing_WP{
                     $args = array(
                         'category' => $category->term_id,
                         'numberposts' => -1
-                    );     
+                    );
                     $zoom = 6;
                 break;
 
@@ -893,11 +966,11 @@ class LeadGenerator_WP extends Landing_WP{
 
                     if($posts_near > 0):
                         foreach(array_filter($posts_near) as $post_near):
-                            $meta = get_post_meta($post_near[0]->ID, '',false);  
+                            $meta = get_post_meta($post_near[0]->ID, '',false);
                         endforeach;
                     else:
-                        $meta = get_post_meta($this->code[0]->ID, '',false);  
-                    endif; 
+                        $meta = get_post_meta($this->code[0]->ID, '',false);
+                    endif;
                     $zoom = 12;
                 break;
 
@@ -908,37 +981,37 @@ class LeadGenerator_WP extends Landing_WP{
                     $zoom = 5;
                 break;
             endswitch;
-          
+
             $values = $this->get_ubication_array($args);
-    
+
         ?>
         <div id="mapa"></div>
         <script type="text/javascript">
                         var marcadores = [
-                <?php 
+                <?php
 
-                if( isset($_GET['store_id']) ) { echo '[' . $this->meta_ubi($meta) . '],'; 
+                if( isset($_GET['store_id']) ) { echo '[' . $this->meta_ubi($meta) . '],';
                         } else { foreach($values as $value): echo '[' . $value . '],'; endforeach;} ?> ];
             function initialize() {
                 var map = new google.maps.Map(document.getElementById('mapa'), {
                     zoom: <?= $zoom ?>,
                     center: new google.maps.LatLng(
-                        <?php  if(is_single()) { 
-                            preg_match_all("/(.*\"),(.*)/", $value, $out); echo $out[2][0]; 
+                        <?php  if(is_single()) {
+                            preg_match_all("/(.*\"),(.*)/", $value, $out); echo $out[2][0];
                                 } elseif(isset($_GET['store_id']) OR isset($_GET['cp'])) {
-                                    echo $meta['lat'][0] . ',' . $meta['long'][0]; 
+                                    echo $meta['lat'][0] . ',' . $meta['long'][0];
                                 } else {
                                     if(!is_category()) {
-                                        echo '40.4379332,-3.7495761'; 
-                                    } else { 
-                                        preg_match_all("/(\"),(.*)/", $value, $output); echo $output[2][0]; 
+                                        echo '40.4379332,-3.7495761';
+                                    } else {
+                                        preg_match_all("/(\"),(.*)/", $value, $output); echo $output[2][0];
                                     }
                                  } ?>),
                     mapTypeId: google.maps.MapTypeId.ROADMAP
                 });
                 var infowindow = new google.maps.InfoWindow();
                 var marker, i;
-                for (i = 0; i < marcadores.length; i++) {  
+                for (i = 0; i < marcadores.length; i++) {
                     marker = new google.maps.Marker({
                     position: new google.maps.LatLng(marcadores[i][1], marcadores[i][2]),
                     map: map
@@ -954,7 +1027,7 @@ class LeadGenerator_WP extends Landing_WP{
                 }
                 google.maps.event.addDomListener(window, 'load', initialize);
         </script>
-        <?php 
+        <?php
         }
     }
 $GLOBALS['leadgenerator'] = new LeadGenerator_WP();

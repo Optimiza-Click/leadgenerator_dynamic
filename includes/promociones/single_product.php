@@ -5,6 +5,7 @@ if (!class_exists('Product_WP_Landing'))
 	{
     public function __construct() {
         add_action( 'admin_init', array( $this, 'promo_leadgenerator_meta_boxes' ) );
+				add_action( 'wp_head', array( $this, 'PrintActionButton' ) );
         add_filter( 'save_post', array( $this, 'save_shops_promo_leadgenerator' ), 10, 2 );
         add_action( 'admin_print_scripts', array( $this, 'promo_leadgenerator_admin_js_css') );
         add_shortcode( 'get_meta_value_promo', array( $this, 'get_meta_value_promo') );
@@ -44,6 +45,15 @@ if (!class_exists('Product_WP_Landing'))
     public function get_meta_value_promo() {
         global $post;
 
+				?>
+					<script>
+					jQuery('#print_button').click(function() {
+						console.log('hola');
+						window.print();
+					});
+					</script>
+					<?php
+
         $serialize = get_post_meta($post->ID, 'promo_leadgenerator_store_id', true);
 
         if(in_array($_GET['store_id'], $serialize)) {
@@ -53,7 +63,7 @@ if (!class_exists('Product_WP_Landing'))
                 'meta_key'		=> 'store_id',
                 'meta_value'	=> $_GET['store_id']
                 ));
-            }else {
+            } else {
                 $post = get_posts(array(
                 'numberposts'	=> -1,
                 'post_type'		=> 'post',
@@ -62,7 +72,7 @@ if (!class_exists('Product_WP_Landing'))
                 ));
             }
 
-            $value = get_post_meta($post[0]->ID, '', false); 
+            $value = get_post_meta($post[0]->ID, '', false);
             $cate = $this->check_category(get_the_category($post[0]->ID)); ?>
             <div class="wpb_column vc_column_container vc_col-sm-12 values_import" style="margin-bottom:60px;width: 50%;float: none;margin: 0 auto;">
                 <div class="vc_column-inner display">
@@ -90,9 +100,9 @@ if (!class_exists('Product_WP_Landing'))
                         </div>
                     </div>
                 </div>
-            </div>  
+            </div>
             <?php
-            
+
         }
 
     public function add_select_shops_promo_leadgenerator() {
@@ -100,14 +110,15 @@ if (!class_exists('Product_WP_Landing'))
         $custom = get_post_custom( $post->ID );
         $values = get_post_meta($post->ID, '', false);
 
-        $defaults = array(
-            'category' => 0,
-            'numberposts' => -1,
-        );
+				$query = query_posts( array(
+					   'cat'      => 0 ,
+				    'meta_key' => 'store_id' ,
+				    'orderby'  => 'order_number' ,
+						'posts_per_page' => -1,
+				    'order'    => 'ASC'
+				));
 
-        $posts = get_posts($defaults);
-
-        foreach($posts as $post) {
+        foreach($query as $post) {
             $store_ids[] = array(
                 'store_id' => get_post_meta($post->ID, 'store_id', true),
                 'poblacion' => $this->check_category(get_the_category($post->ID)),
@@ -115,21 +126,28 @@ if (!class_exists('Product_WP_Landing'))
                 'provincia' => $this->category_cheker_reverse(get_the_category($post->ID)),
             );
         }
+
+
         ?>
         <div style="display:none" id="prueba"><?= $values['promo_leadgenerator_store_id'][0] ?></div>
         <div id="selections">
         <label>Select Store ID:</label><br />
             <select multiple="multiple" class="select2" id="promo_leadgenerator_store_id" name="promo_leadgenerator_store_id[]">
             <?php foreach($store_ids as $store_id): ?>
-                <option name="promo_leadgenerator_store_id_single" value="<?= $store_id['store_id'] ?>"><?= $store_id['store_id'] . ', ' . $store_id['direccion'] . ' - ' . $store_id['poblacion']->name . ' - ' . $store_id['provincia']->name  ?></option>
+                <option name="promo_leadgenerator_store_id_single" value="<?= $store_id['store_id'] ?>"><?= $store_id['store_id'] . ', ' . $store_id['provincia']->name . ' - ' . $store_id['poblacion']->name . ' - ' . $store_id['direccion']  ?></option>
             <?php endforeach; ?>
             </select>
         </div>
         <p>
-       
+
             <label>Banner for shop with promotion:</label><br />
             <textarea cols="150" rows="15" name="bannerpromo" class="width99"><?= @$custom["bannerpromo"][0] ?></textarea>
         </p>
+				<p>
+
+						<label>Texto for mail promo:</label><br />
+						<textarea cols="150" rows="3" name="mailpromo" class="width99"><?= @$custom["mailpromo"][0] ?></textarea>
+				</p>
         <p>
             <label>Comentarios:</label><br />
             <textarea cols="150" rows="5" name="comments_promo" class="width99"><?= @$custom["comments_promo"][0] ?></textarea>
@@ -143,6 +161,7 @@ if (!class_exists('Product_WP_Landing'))
             update_post_meta($post->ID, "bannerpromo", $_POST['bannerpromo']);
             update_post_meta($post->ID, "promo_leadgenerator_store_id", $_POST['promo_leadgenerator_store_id']);
             update_post_meta($post->ID, "comments_promo", $_POST["comments_promo"]);
+						update_post_meta($post->ID, "mailpromo", $_POST["mailpromo"]);
 
 
             $meta = get_post_meta($post->ID, 'promo_leadgenerator_store_id', true);

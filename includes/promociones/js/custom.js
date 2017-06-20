@@ -15,7 +15,7 @@ jQuery(document).ready(function($)
 		    tags: true
 	    });
     }
-    
+
 });
 
 
@@ -36,5 +36,14 @@ jQuery(document).ready(function($)
          jQuery('.select2').select2({
 		    tags: true
 	    });
-    } 
+    }
+});
+
+
+jQuery(document).ready(function($)
+{
+  jQuery('#print_button').click(function() {
+					console.log('hola');
+					window.print();
+				});
 });

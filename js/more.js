@@ -73,7 +73,7 @@ jQuery(document).ready(function() {
            }
         }
         jQuery('form').append('<input type="hidden" name="promo" value="' + jQuery.urlParam('promo') + '" />');
-        var myString = jQuery(this).find("option:selected").val();
+        var myString = jQuery(this).find("option:selected").text();
         var direccion = myString.substring(myString.indexOf(',') + 1);
 
         jQuery.ajax({
@@ -83,8 +83,14 @@ jQuery(document).ready(function() {
             success: function(data) {
                 console.log(data);
                 var json = JSON.parse(data);
-                jQuery('form').append('<input type="hidden" name="store_id" value="' + json.store_id + '" />');
-                jQuery('.text_with_image_background').html('En este centro te espera:<br />' + json.nutricionista).html();
+                jQuery('form').append('<input type="hidden" id="store_id_value" name="store_id" value="' + json.store_id + '" />');
+		if(jQuery.type(json.nutricionista) === "string"){
+		jQuery('.text_with_image_background').html('En este centro te espera:<br />' + json.nutricionista).html();
+	   	 } else {
+			jQuery('.text_with_image_background').html('En este centro te esperamos con los brazos abiertos').html();
+		 }
+                var value_id = jQuery("input[name=url_boucher]").val();
+                jQuery("input[name=url_boucher]").val(value_id + json.store_id);
             }
         });
     });

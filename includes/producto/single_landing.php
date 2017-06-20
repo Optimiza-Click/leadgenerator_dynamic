@@ -1,8 +1,8 @@
 <?php
-if (!class_exists('Landing_WP')) 
+if (!class_exists('Landing_WP'))
 {
-	class Landing_WP 
-	{	
+	class Landing_WP
+	{
 
         public $n_localidades = 10;
         public $n_provincias = 10;
@@ -24,7 +24,7 @@ if (!class_exists('Landing_WP'))
                 $localidad = get_category($_GET['localidad']);
 
                     print_r(json_encode(get_site_url() . '/' . $provincia->slug . '/' . str_replace(' ', '-',strtolower($localidad->name) . '/?cp=' . $cp)));
-                
+
                 die();
             }
         }
@@ -34,24 +34,24 @@ if (!class_exists('Landing_WP'))
             if(isset($_GET['category_id'])) {
                     $args = array('child_of' => $_GET['category_id']);
                     $nElements = 0;
-                    
+
                     if(isset($_GET['promo'])){
                         $leadgenerator->init();
                         $elements = $leadgenerator->getCategories();
-                        
+
                         foreach($elements as $element){
                             if($element['category']->term_id == $_GET['category_id'] ){
-                               
+
                                 $nStores = $leadgenerator->countStoresByParentCategory($_GET['category_id']);
-                              
+
                                 $nElements = count($element['childs']);
-                               
-                                
+
+
                                 if($nElements > 1 && $nStores > $leadgenerator->n_localidades){
                                     echo json_encode($element['childs']);
                                 } else {
                                     echo (get_category_link($element['category']).'?promo='. "".$_GET['promo']);
-          
+
                                 }
                             }
                         }
@@ -67,24 +67,24 @@ if (!class_exists('Landing_WP'))
                         echo (json_encode(get_categories( $args )));
                         }
                      die();
-            } elseif(isset($_GET['local_id'])){ 
+            } elseif(isset($_GET['local_id'])){
                 $args = array(
                     'category' => $_GET['local_id'],
                     'posts_per_page' => -1
                     );
-                     
+
                     $post = $leadgenerator->check_tag($args);
 
                     $category = get_the_category($post[0]);
- 
+
                     if(count(get_posts($args)) > $this->n_localidades && !$leadgenerator->isPromo()) {
                         $category = $leadgenerator->check_category(get_the_category($post[0]->ID));
-                      
+
                         $args = array(
                             'url' => get_site_url() . '/' . strtolower($category->cat_name) . '/' .  strtolower($category->name),
                             'value' => true
                         );
-         
+
                         print_r(json_encode($args));
                     } else {
 
@@ -100,7 +100,7 @@ if (!class_exists('Landing_WP'))
                         );
 
                         print_r(json_encode($args));
-                    
+
                     }
                 die();
             }
@@ -126,12 +126,12 @@ if (!class_exists('Landing_WP'))
                 'show_option_all' => 'PROVINCIA'
                 );
 
-              
+
 
                 $query=new WP_Query($options);
 
-          
-                ?>		
+
+                ?>
                 <!-- modal content -->
 
                 <div id="basic-modal-content" style="display:none">
@@ -143,10 +143,10 @@ if (!class_exists('Landing_WP'))
                     <select name="cat" id="provincia" class='pronvincia' >
                         <option value="0" selected="selected" >PROVINCIA</option>
                         <?php
-                       
+
                         $hiearchy = $leadgenerator->getCategories();
-                       
-                        foreach($hiearchy as $term_id => $category) {  ?>
+
+                        foreach($hiearchy as $term_id => $category) { ?>
                                         <option class="level-0" value="<?= $category['category']->term_id  . '&promo=' . $_GET['promo'] ?>">
                                         <?= $category['category']->name ?></option>
                         <?php } ?>
@@ -156,7 +156,7 @@ if (!class_exists('Landing_WP'))
                     <?php else:?>
                         <?php wp_dropdown_categories( $args_category ); ?>
                     <?php endif;?>
-                    
+
 
                     <div id="local" style="display:none">
                         <select id="localidad">
@@ -166,18 +166,18 @@ if (!class_exists('Landing_WP'))
                     </div>
                     </div>
                     <div class="codigo_postal" style="display:none">
-                    <h4 class="message_prov">¿Conoces tu codigo postal?</h4>
+                    <h4 class="message_prov">¿Conoces tu código postal?</h4>
                     <form action="#">
                             <input id="text_cp" class="code_postal" type="text"></input>
-                           <button type="button" id="send_cp">Enviar</button> 
+                           <button type="button" id="send_cp">Enviar</button>
                     </form>
                         <a id="categories_display"><small style="color:#506f67;text-decoration: underline;margin: 0 auto;display: table;">no lo conozco / no lo recuerdo</small></a>
                         <a id="come_back_cp"><small style="text-align:right;color:#506f67;float:right">< volver atrás</small></a>
                     </div>
                 </div>
                 <?php
-            } 
-            
+            }
+
         }
     }
 new Landing_WP();
